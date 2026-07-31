@@ -1,37 +1,20 @@
-# 🥷 Number Ninja v2 — 100-Level Adaptive Math Mastery Game
+# RetailBill — Multi-Tenant Billing & POS SaaS
 
-A mobile-first, PWA-enabled math game with 100 levels across 10 worlds. Built entirely client-side — no backend, no database.
+RetailBill is a multi-tenant SaaS billing and point-of-sale (POS) platform built for Indian retail shops — from single-counter Kirana stores to multi-branch supermarket chains.
 
 ## Features
-- **100 Levels** across 10 Worlds (10 topics × 10 levels each)
-- **Adaptive Difficulty Engine** — adjusts question difficulty based on accuracy & speed
-- **Spaced Repetition** — weak topics automatically reappear in future levels
-- **Mastery-Based Unlock** — next level unlocks only after crossing mastery threshold
-- **Boss Battles** — every 10th level is a boss fight
-- **Daily Challenge** — date-seeded classroom warm-up (same questions for entire class)
-- **Instant Explanations** — concept reinforcement on wrong answers
-- **Certificate Generator** — downloadable PNG/PDF mastery certificates
-- **PWA** — installable on iOS & Android home screens
-- **100% Client-Side** — localStorage only, zero server dependency
+- **Ultra-Fast POS Terminal**: HID barcode scanner integration, quick search, itemized tax calculation (CGST/SGST/IGST), camera barcode scanner, and payment modes (Cash, UPI QR, Card, Store Credit).
+- **Thermal & GST Printing**: Direct rendering for 80mm/58mm thermal receipts and full A4/A5 GST Tax Invoices.
+- **Multi-Tenant SaaS Architecture**: Isolated shop contexts, role-based access (Owner, Manager, Cashier, Super Admin), and subscription tiers (Starter, Growth, Enterprise).
+- **Multi-Store Management**: Cross-branch inventory matrix and inter-branch stock transfers.
+- **GST & Financial Analytics**: GSTR-1 HSN tax summary reports and sales analytics.
 
 ## Tech Stack
-- React + Vite
-- Tailwind CSS (CDN)
-- Custom CSS Design System (`ninja.css`)
-- Web Audio API (no external audio files)
-- Canvas API (certificate generation)
-- localStorage (progress persistence)
+- **Frontend**: React 18, Vite, Tailwind CSS, Lucide Icons
+- **State Management**: React Context Engine with LocalStorage persistence
 
-## Run Locally
+## Getting Started
 ```bash
 npm install
 npm run dev
 ```
-
-## Build
-```bash
-npm run build
-```
-
-## License
-MIT
