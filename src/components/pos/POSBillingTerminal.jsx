@@ -13,6 +13,7 @@ import {
 import { CameraScannerModal } from './CameraScannerModal';
 import { PaymentModal } from './PaymentModal';
 import { ThermalPrintModal } from './ThermalPrintModal';
+import { QuickAddProductModal } from './QuickAddProductModal';
 
 export const POSBillingTerminal = () => {
   const { products, activeBranch, createInvoice } = useTenant();
@@ -21,10 +22,15 @@ export const POSBillingTerminal = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [cart, setCart] = useState([]);
 
+  // Modals
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [completedInvoice, setCompletedInvoice] = useState(null);
   const [isPrintOpen, setIsPrintOpen] = useState(false);
+
+  // Quick Add Unknown Barcode Modal
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [unknownBarcode, setUnknownBarcode] = useState('');
 
   const barcodeBufferRef = useRef('');
   const lastKeyTimeRef = useRef(Date.now());
@@ -78,6 +84,7 @@ export const POSBillingTerminal = () => {
       } else if (e.key === 'Escape') {
         setIsCameraOpen(false);
         setIsPaymentOpen(false);
+        setIsQuickAddOpen(false);
       }
     };
     window.addEventListener('keydown', handleShortcuts);
@@ -90,7 +97,9 @@ export const POSBillingTerminal = () => {
       addToCart(match);
       setSearchQuery('');
     } else {
-      alert(`Product with barcode "${barcode}" not found in current catalog.`);
+      // Barcode not in catalog -> Prompt 1-Click Quick Add Modal
+      setUnknownBarcode(barcode);
+      setIsQuickAddOpen(true);
     }
   };
 
@@ -105,6 +114,11 @@ export const POSBillingTerminal = () => {
         return [...prev, { ...product, qty: 1, discount: 0 }];
       }
     });
+  };
+
+  const handleProductCreatedAndAdded = (newProduct) => {
+    addToCart(newProduct);
+    setSearchQuery('');
   };
 
   const updateQty = (id, delta) => {
@@ -355,6 +369,13 @@ export const POSBillingTerminal = () => {
         onClose={() => setIsCameraOpen(false)}
         onScanSuccess={handleScanBarcode}
         availableProducts={products}
+      />
+
+      <QuickAddProductModal
+        isOpen={isQuickAddOpen}
+        onClose={() => setIsQuickAddOpen(false)}
+        barcode={unknownBarcode}
+        onProductCreatedAndAdded={handleProductCreatedAndAdded}
       />
 
       <PaymentModal
