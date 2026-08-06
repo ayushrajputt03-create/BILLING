@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Scan, X, Camera, Zap, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Scan, X, CheckCircle2, Tag, ShoppingCart } from 'lucide-react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 
 export const CameraScannerModal = ({ isOpen, onClose, onScanSuccess, availableProducts }) => {
-  const [scanMessage, setScanMessage] = useState('Initializing camera...');
+  const [scanMessage, setScanMessage] = useState('Point camera at product barcode');
   const [isScanning, setIsScanning] = useState(false);
   const [manualCode, setManualCode] = useState('');
+  const [detectedProduct, setDetectedProduct] = useState(null);
+
   const html5QrcodeRef = useRef(null);
   const hasScannedRef = useRef(false);
 
@@ -33,7 +35,7 @@ export const CameraScannerModal = ({ isOpen, onClose, onScanSuccess, availablePr
   useEffect(() => {
     if (isOpen) {
       hasScannedRef.current = false;
-      // Short delay to ensure container element '#reader' is rendered in DOM
+      setDetectedProduct(null);
       const timer = setTimeout(() => {
         startHtml5Scanner();
       }, 200);
@@ -84,21 +86,30 @@ export const CameraScannerModal = ({ isOpen, onClose, onScanSuccess, availablePr
           hasScannedRef.current = true;
 
           playScanBeep();
-          setScanMessage(`Scanned Barcode: ${decodedText}`);
+          
+          const matched = availableProducts.find(p => p.barcode === decodedText);
+          if (matched) {
+            setDetectedProduct(matched);
+            setScanMessage(`Found: ${matched.name} — ₹${matched.sellingPrice}`);
+          } else {
+            setScanMessage(`Barcode: ${decodedText}`);
+          }
 
           stopHtml5Scanner().then(() => {
-            onScanSuccess(decodedText);
-            onClose();
+            setTimeout(() => {
+              onScanSuccess(decodedText);
+              onClose();
+            }, 500);
           });
         },
         (errorMessage) => {
-          // Continuous frame parsing error (normal while searching for barcode)
+          // Frame search
         }
       );
     } catch (err) {
-      console.warn('Camera failed or permission denied, enabling simulation mode', err);
+      console.warn('Camera permission or availability issue', err);
       setIsScanning(false);
-      setScanMessage('Camera permission denied or unavailable. Use simulation or manual entry below.');
+      setScanMessage('Camera unavailable. Select product below or enter barcode manually.');
     }
   };
 
@@ -119,17 +130,24 @@ export const CameraScannerModal = ({ isOpen, onClose, onScanSuccess, availablePr
 
   const handleSimulatedScan = (product) => {
     playScanBeep();
-    setScanMessage(`Scanned: ${product.name} [${product.barcode}]`);
+    setDetectedProduct(product);
+    setScanMessage(`Scanned: ${product.name} — ₹${product.sellingPrice}`);
     setTimeout(() => {
       onScanSuccess(product.barcode);
       onClose();
-    }, 300);
+    }, 400);
   };
 
   const handleManualSubmit = (e) => {
     e.preventDefault();
     if (!manualCode.trim()) return;
     playScanBeep();
+
+    const matched = availableProducts.find(p => p.barcode === manualCode.trim() || p.name.toLowerCase().includes(manualCode.trim().toLowerCase()));
+    if (matched) {
+      setDetectedProduct(matched);
+    }
+
     onScanSuccess(manualCode.trim());
     onClose();
   };
@@ -145,7 +163,7 @@ export const CameraScannerModal = ({ isOpen, onClose, onScanSuccess, availablePr
             <Scan className="w-5 h-5 text-emerald-400 animate-pulse" />
             <div>
               <h3 className="font-bold text-white text-base">Live Camera Barcode Scanner</h3>
-              <p className="text-[11px] text-slate-400">EAN-13, CODE-128, UPC Real-Time Detector</p>
+              <p className="text-[11px] text-slate-400">Scans barcode & auto-populates product name & price</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
@@ -153,55 +171,92 @@ export const CameraScannerModal = ({ isOpen, onClose, onScanSuccess, availablePr
           </button>
         </div>
 
-        {/* Real Live HTML5 Scanner Container */}
-        <div className="relative bg-slate-950 min-h-[220px] flex flex-col items-center justify-center border-b border-slate-800 overflow-hidden">
+        {/* Real Live HTML5 Scanner Viewport */}
+        <div className="relative bg-slate-950 min-h-[210px] flex flex-col items-center justify-center border-b border-slate-800 overflow-hidden">
           <div id="reader" className="w-full h-full text-white font-mono text-xs text-center"></div>
 
-          {/* Status Message Overlay */}
+          {/* Status Message */}
           <div className="absolute top-3 left-3 right-3 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-full text-xs text-emerald-400 font-medium flex items-center gap-2 justify-center shadow-lg">
             <span className={`w-2 h-2 rounded-full ${isScanning ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`}></span>
             <span className="truncate">{scanMessage}</span>
           </div>
+
+          {/* Scanned Product Banner Overlay */}
+          {detectedProduct && (
+            <div className="absolute bottom-3 left-3 right-3 p-3 bg-emerald-950/95 border border-emerald-500/50 rounded-xl text-white flex items-center justify-between shadow-2xl animate-bounce">
+              <div>
+                <p className="font-bold text-xs text-emerald-300">{detectedProduct.name}</p>
+                <div className="flex items-center gap-2 text-[10px] text-slate-300">
+                  <span>MRP: <span className="line-through">₹{detectedProduct.mrp}</span></span>
+                  <span>GST: {detectedProduct.taxRate}%</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-base font-bold font-mono text-emerald-400">₹{detectedProduct.sellingPrice.toFixed(2)}</p>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500 text-slate-950">
+                  ADDED TO BILL
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Manual Barcode Input Fallback */}
-        <div className="p-4 bg-slate-900 border-b border-slate-800 space-y-2">
+        {/* Manual Input Fallback */}
+        <div className="p-3 bg-slate-900 border-b border-slate-800">
           <form onSubmit={handleManualSubmit} className="flex gap-2">
             <input
               type="text"
-              placeholder="Enter barcode manually (e.g. 8901030300001)..."
+              placeholder="Type Product Barcode or Name..."
               value={manualCode}
               onChange={(e) => setManualCode(e.target.value)}
               className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
             />
             <button
               type="submit"
-              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs"
+              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1"
             >
-              Add
+              <ShoppingCart className="w-3.5 h-3.5" />
+              <span>Add</span>
             </button>
           </form>
         </div>
 
-        {/* Quick Product Tap Simulator */}
-        <div className="p-4 bg-slate-900/90 space-y-2 overflow-y-auto flex-1 max-h-48">
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-            Quick Scan Simulator (Tap to Test)
+        {/* Product Catalog List with Name & Price Details */}
+        <div className="p-3 bg-slate-900/90 space-y-2 overflow-y-auto flex-1 max-h-52">
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+            <span>Product Catalog (Tap to Scan & Bill)</span>
+            <span>{availableProducts.length} Items</span>
           </p>
+
           <div className="grid grid-cols-1 gap-2">
             {availableProducts.map(p => (
               <button
                 key={p.id}
                 onClick={() => handleSimulatedScan(p)}
-                className="w-full text-left p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 text-xs flex items-center justify-between transition-colors"
+                className="w-full text-left p-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/90 border border-slate-700/80 text-xs flex items-center justify-between transition-all group"
               >
-                <div>
-                  <p className="font-semibold text-slate-200">{p.name}</p>
-                  <p className="text-[10px] text-emerald-400 font-mono">Barcode: {p.barcode}</p>
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-slate-100 group-hover:text-emerald-300 transition-colors">
+                      {p.name}
+                    </span>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-700 text-slate-300">
+                      {p.category}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-mono">
+                    Barcode: <span className="text-emerald-400 font-bold">{p.barcode}</span> • HSN: {p.hsnCode || '—'}
+                  </p>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-slate-100">₹{p.sellingPrice.toFixed(2)}</p>
-                  <span className="text-[10px] text-emerald-400 font-semibold">Tap to Scan →</span>
+
+                <div className="text-right ml-2 flex flex-col items-end">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-slate-400 line-through">₹{p.mrp}</span>
+                    <span className="text-sm font-bold font-mono text-emerald-400">₹{p.sellingPrice.toFixed(2)}</span>
+                  </div>
+                  <span className="text-[10px] text-emerald-400 font-semibold group-hover:underline">
+                    Scan Item →
+                  </span>
                 </div>
               </button>
             ))}
