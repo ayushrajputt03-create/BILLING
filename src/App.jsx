@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { TenantProvider, useTenant } from './context/TenantContext';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar } from './components/layout/Sidebar';
+import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { POSBillingTerminal } from './components/pos/POSBillingTerminal';
 import { InventoryManager } from './components/inventory/InventoryManager';
 import { BranchManager } from './components/multistore/BranchManager';
@@ -16,7 +17,7 @@ const MainAppContent = () => {
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans select-none">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans select-none pb-14 md:pb-0">
       {/* Offline Connectivity Guard Banner */}
       {!isOnline && (
         <div className="bg-gradient-to-r from-amber-600 to-orange-600 text-slate-950 px-4 py-1.5 text-center text-xs font-bold flex items-center justify-center gap-2 shadow-md">
@@ -40,6 +41,9 @@ const MainAppContent = () => {
           {activeTab === 'admin' && <SuperAdminPortal />}
         </main>
       </div>
+
+      {/* Mobile Bottom Dock */}
+      <MobileBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <KeyboardShortcutsModal
         isOpen={isShortcutsOpen}
