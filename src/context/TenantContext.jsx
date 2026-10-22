@@ -29,7 +29,7 @@ export const TenantProvider = ({ children }) => {
   const [products, setProducts] = useState(() => getStored('products', INITIAL_PRODUCTS));
   const [invoices, setInvoices] = useState(() => getStored('invoices', INITIAL_INVOICES));
   const [stockTransfers, setStockTransfers] = useState(() => getStored('stockTransfers', INITIAL_STOCK_TRANSFERS));
-  const [theme, setTheme] = useState(() => getStored('theme', 'dark'));
+  const [theme, setTheme] = useState(() => getStored('theme', 'light'));
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => { setStored('tenants', tenants); }, [tenants]);
