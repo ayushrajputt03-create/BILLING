@@ -7,6 +7,7 @@ import { POSBillingTerminal } from './components/pos/POSBillingTerminal';
 import { InventoryManager } from './components/inventory/InventoryManager';
 import { BranchManager } from './components/multistore/BranchManager';
 import { ReportsDashboard } from './components/reports/ReportsDashboard';
+import { CustomerManager } from './components/customers/CustomerManager';
 import { SuperAdminPortal } from './components/admin/SuperAdminPortal';
 import { KeyboardShortcutsModal } from './components/pos/KeyboardShortcutsModal';
 import './styles/retailbill.css';
@@ -65,6 +66,7 @@ const MainAppContent = () => {
         <main className="flex-1 overflow-y-auto">
           {activeTab === 'pos' && <POSBillingTerminal />}
           {activeTab === 'inventory' && <InventoryManager />}
+          {activeTab === 'customers' && <CustomerManager />}
           {activeTab === 'multistore' && <BranchManager />}
           {activeTab === 'reports' && <ReportsDashboard />}
           {activeTab === 'admin' && <SuperAdminPortal />}

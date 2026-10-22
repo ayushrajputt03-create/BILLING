@@ -332,3 +332,79 @@ export const INITIAL_STOCK_TRANSFERS = [
     date: '2026-07-23'
   }
 ];
+
+export const INITIAL_CUSTOMERS = [
+  {
+    id: 'cust-101',
+    tenantId: 'tenant-rajesh-kirana',
+    name: 'Suresh Kumar',
+    phone: '+91 98999 11111',
+    email: 'suresh.k@gmail.com',
+    address: 'Flat 204, CP Enclave, New Delhi',
+    totalPurchases: 4320.00,
+    totalOutstanding: 650.00,
+    creditLimit: 5000,
+    createdDate: '2026-05-10T10:00:00.000Z',
+    lastVisit: '2026-07-23T14:20:00.000Z'
+  },
+  {
+    id: 'cust-102',
+    tenantId: 'tenant-rajesh-kirana',
+    name: 'Amit Sharma',
+    phone: '+91 98123 45678',
+    email: 'amit.sharma99@yahoo.com',
+    address: 'B-12, Sector 4, Rohini, Delhi',
+    totalPurchases: 8940.00,
+    totalOutstanding: 1450.00,
+    creditLimit: 8000,
+    createdDate: '2026-04-12T11:30:00.000Z',
+    lastVisit: '2026-07-20T18:15:00.000Z'
+  },
+  {
+    id: 'cust-103',
+    tenantId: 'tenant-rajesh-kirana',
+    name: 'Priya Verma',
+    phone: '+91 98765 44433',
+    email: 'priya.v@outlook.com',
+    address: 'House 88, Janpath, New Delhi',
+    totalPurchases: 2450.00,
+    totalOutstanding: 0.00,
+    creditLimit: 3000,
+    createdDate: '2026-06-01T09:00:00.000Z',
+    lastVisit: '2026-07-22T12:00:00.000Z'
+  },
+  {
+    id: 'cust-201',
+    tenantId: 'tenant-meena-supermarket',
+    name: 'Ananya Rao',
+    phone: '+91 97400 55443',
+    email: 'ananya.rao@gmail.com',
+    address: '45, 12th Main, Indiranagar, Bengaluru',
+    totalPurchases: 5780.00,
+    totalOutstanding: 920.00,
+    creditLimit: 10000,
+    createdDate: '2026-03-15T10:30:00.000Z',
+    lastVisit: '2026-07-23T16:45:00.000Z'
+  }
+];
+
+export const INITIAL_RETURNS = [
+  {
+    id: 'ret-1001',
+    tenantId: 'tenant-rajesh-kirana',
+    branchId: 'br-rajesh-main',
+    returnNumber: 'RET-001',
+    originalInvoiceId: 'inv-1001',
+    originalInvoiceNumber: 'INV/2026/001',
+    customerName: 'Suresh Kumar',
+    customerPhone: '+91 98999 11111',
+    items: [
+      { productId: 'prod-003', name: 'Tata Salt Vacuum Evaporated 1kg', qty: 1, price: 26.00 }
+    ],
+    refundAmount: 26.00,
+    refundMode: 'Cash',
+    reason: 'Customer bought extra packet by mistake',
+    processedBy: 'Rajesh Kumar',
+    timestamp: '2026-07-23T17:10:00.000Z'
+  }
+];

@@ -5,7 +5,8 @@ import {
   Package, 
   Building, 
   BarChart3, 
-  ShieldCheck 
+  ShieldCheck,
+  Users
 } from 'lucide-react';
 
 export const Sidebar = ({ activeTab, setActiveTab }) => {
@@ -14,6 +15,7 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
   const navItems = [
     { id: 'pos', label: 'POS Billing', icon: Calculator, badge: 'F2', roles: ['Owner', 'Manager', 'Cashier', 'SuperAdmin'] },
     { id: 'inventory', label: 'Inventory & Catalog', icon: Package, badge: null, roles: ['Owner', 'Manager', 'SuperAdmin'] },
+    { id: 'customers', label: 'Customers & Khata', icon: Users, badge: null, roles: ['Owner', 'Manager', 'SuperAdmin'] },
     { id: 'multistore', label: 'Multi-Store & Transfers', icon: Building, badge: currentTenant.plan !== 'Starter' ? 'Pro' : null, roles: ['Owner', 'Manager', 'SuperAdmin'] },
     { id: 'reports', label: 'GST & Sales Reports', icon: BarChart3, badge: 'Tax', roles: ['Owner', 'Manager', 'SuperAdmin'] },
     { id: 'admin', label: 'Platform Super Admin', icon: ShieldCheck, badge: 'SaaS', roles: ['SuperAdmin'] }

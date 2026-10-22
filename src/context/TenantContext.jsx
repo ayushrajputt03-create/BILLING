@@ -1,5 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { INITIAL_TENANTS, INITIAL_PRODUCTS, INITIAL_INVOICES, INITIAL_STOCK_TRANSFERS } from '../data/mockData';
+import { 
+  INITIAL_TENANTS, 
+  INITIAL_PRODUCTS, 
+  INITIAL_INVOICES, 
+  INITIAL_STOCK_TRANSFERS, 
+  INITIAL_CUSTOMERS, 
+  INITIAL_RETURNS 
+} from '../data/mockData';
 
 const TenantContext = createContext();
 
@@ -29,6 +36,8 @@ export const TenantProvider = ({ children }) => {
   const [products, setProducts] = useState(() => getStored('products', INITIAL_PRODUCTS));
   const [invoices, setInvoices] = useState(() => getStored('invoices', INITIAL_INVOICES));
   const [stockTransfers, setStockTransfers] = useState(() => getStored('stockTransfers', INITIAL_STOCK_TRANSFERS));
+  const [customers, setCustomers] = useState(() => getStored('customers', INITIAL_CUSTOMERS || []));
+  const [returns, setReturns] = useState(() => getStored('returns', INITIAL_RETURNS || []));
   const [theme, setTheme] = useState(() => getStored('theme', 'light'));
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -40,6 +49,8 @@ export const TenantProvider = ({ children }) => {
   useEffect(() => { setStored('products', products); }, [products]);
   useEffect(() => { setStored('invoices', invoices); }, [invoices]);
   useEffect(() => { setStored('stockTransfers', stockTransfers); }, [stockTransfers]);
+  useEffect(() => { setStored('customers', customers); }, [customers]);
+  useEffect(() => { setStored('returns', returns); }, [returns]);
   useEffect(() => { setStored('theme', theme); document.documentElement.setAttribute('data-theme', theme); }, [theme]);
 
   useEffect(() => {
@@ -132,9 +143,70 @@ export const TenantProvider = ({ children }) => {
     setProducts(prev => [...formatted, ...prev]);
   };
 
+  // Customers & Khata Management
+  const tenantCustomers = customers.filter(c => c.tenantId === currentTenantId);
+
+  const addOrUpdateCustomer = (customerData) => {
+    const cleanPhone = (customerData.phone || '').trim();
+    const existing = cleanPhone ? customers.find(c => c.phone && c.phone.trim() === cleanPhone && c.tenantId === currentTenantId) : null;
+    if (existing) {
+      setCustomers(prev => prev.map(c => c.id === existing.id ? { 
+        ...c, 
+        ...customerData, 
+        lastVisit: new Date().toISOString() 
+      } : c));
+      return existing.id;
+    } else {
+      const newCust = {
+        id: `cust-${Date.now()}`,
+        tenantId: currentTenantId,
+        name: customerData.name || 'Walk-in Customer',
+        phone: customerData.phone || '',
+        email: customerData.email || '',
+        address: customerData.address || '',
+        totalPurchases: Number(customerData.totalPurchases || 0),
+        totalOutstanding: Number(customerData.totalOutstanding || 0),  // Udhaar/Khata balance
+        creditLimit: Number(customerData.creditLimit || 5000),
+        createdDate: new Date().toISOString(),
+        lastVisit: new Date().toISOString(),
+      };
+      setCustomers(prev => [newCust, ...prev]);
+      return newCust.id;
+    }
+  };
+
+  const updateCustomerBalance = (customerId, amount, type) => {
+    // type: 'purchase' | 'udhaar' | 'payment_received'
+    const numAmt = Number(amount || 0);
+    setCustomers(prev => prev.map(c => {
+      if (c.id !== customerId) return c;
+      if (type === 'udhaar') return { 
+        ...c, 
+        totalOutstanding: (c.totalOutstanding || 0) + numAmt, 
+        totalPurchases: (c.totalPurchases || 0) + numAmt,
+        lastVisit: new Date().toISOString()
+      };
+      if (type === 'payment_received') return { 
+        ...c, 
+        totalOutstanding: Math.max(0, (c.totalOutstanding || 0) - numAmt),
+        lastVisit: new Date().toISOString()
+      };
+      if (type === 'purchase') return { 
+        ...c, 
+        totalPurchases: (c.totalPurchases || 0) + numAmt,
+        lastVisit: new Date().toISOString()
+      };
+      return c;
+    }));
+  };
+
+  const deleteCustomer = (customerId) => {
+    setCustomers(prev => prev.filter(c => c.id !== customerId));
+  };
+
   const tenantInvoices = invoices.filter(inv => inv.tenantId === currentTenantId);
 
-  const createInvoice = (cartItems, paymentInfo, customerInfo, billDiscount = 0) => {
+  const createInvoice = (cartItems, paymentInfo = {}, customerInfo = {}, billDiscount = 0) => {
     const branchInvoicesCount = tenantInvoices.filter(inv => inv.branchId === currentBranchId).length;
     const invSeq = String(branchInvoicesCount + 1).padStart(3, '0');
     const branchCode = activeBranch.code || 'MAIN';
@@ -169,14 +241,42 @@ export const TenantProvider = ({ children }) => {
     const netSubtotal = Math.max(0, subtotal - billDiscount);
     const grandTotal = Math.round((netSubtotal + cgstTotal + sgstTotal) * 100) / 100;
 
+    const pMode = paymentInfo.mode || paymentInfo.paymentMode || 'Cash';
+
+    // Link or create customer
+    let custId = customerInfo?.id || null;
+    const custPhone = (customerInfo?.phone || '').trim();
+    const custName = (customerInfo?.name || '').trim();
+    if (!custId && custPhone) {
+      const match = customers.find(c => c.phone && c.phone.trim() === custPhone && c.tenantId === currentTenantId);
+      if (match) {
+        custId = match.id;
+      } else if (custName || custPhone) {
+        custId = addOrUpdateCustomer({
+          name: custName || 'Customer',
+          phone: custPhone,
+          creditLimit: 5000
+        });
+      }
+    }
+
+    if (custId) {
+      if (pMode === 'Udhaar') {
+        updateCustomerBalance(custId, grandTotal, 'udhaar');
+      } else {
+        updateCustomerBalance(custId, grandTotal, 'purchase');
+      }
+    }
+
     const newInvoice = {
       id: `inv-${Date.now()}`,
       invoiceNumber: invoiceNum,
       tenantId: currentTenantId,
       branchId: currentBranchId,
       branchName: activeBranch.name,
-      customerName: customerInfo.name || 'Walk-in Customer',
-      customerPhone: customerInfo.phone || '',
+      customerId: custId,
+      customerName: custName || 'Walk-in Customer',
+      customerPhone: custPhone,
       items: formattedItems,
       subtotal: subtotal,
       discountTotal: billDiscount,
@@ -184,8 +284,8 @@ export const TenantProvider = ({ children }) => {
       sgstTotal: Math.round(sgstTotal * 100) / 100,
       igstTotal: 0,
       grandTotal: grandTotal,
-      paymentMode: paymentInfo.mode,
-      paymentStatus: 'Paid',
+      paymentMode: pMode,
+      paymentStatus: pMode === 'Udhaar' ? 'Unpaid' : 'Paid',
       cashierName: userName,
       timestamp: new Date().toISOString()
     };
@@ -208,6 +308,51 @@ export const TenantProvider = ({ children }) => {
 
     setInvoices(prev => [newInvoice, ...prev]);
     return newInvoice;
+  };
+
+  // Returns & Refunds Management
+  const tenantReturns = returns.filter(r => r.tenantId === currentTenantId);
+
+  const createReturn = (originalInvoiceId, returnItems, refundMode, reason) => {
+    const originalInv = invoices.find(inv => inv.id === originalInvoiceId);
+    if (!originalInv) return null;
+
+    const refundAmount = returnItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+
+    const newReturn = {
+      id: `ret-${Date.now()}`,
+      tenantId: currentTenantId,
+      branchId: currentBranchId,
+      returnNumber: `RET-${String(tenantReturns.length + 1).padStart(3, '0')}`,
+      originalInvoiceId,
+      originalInvoiceNumber: originalInv.invoiceNumber,
+      customerName: originalInv.customerName || 'Walk-in Customer',
+      customerPhone: originalInv.customerPhone || '',
+      items: returnItems,
+      refundAmount,
+      refundMode,
+      reason,
+      processedBy: userName,
+      timestamp: new Date().toISOString()
+    };
+
+    // Add stock back
+    setProducts(prev => prev.map(p => {
+      const retItem = returnItems.find(ri => ri.productId === p.id);
+      if (retItem) {
+        const currentStock = p.stocks?.[currentBranchId] ?? 0;
+        return { ...p, stocks: { ...p.stocks, [currentBranchId]: currentStock + retItem.qty } };
+      }
+      return p;
+    }));
+
+    // If customer had an outstanding Udhaar and refund mode is Adjust / Store Credit
+    if (originalInv.customerId && (refundMode === 'Adjust' || refundMode === 'Khata')) {
+      updateCustomerBalance(originalInv.customerId, refundAmount, 'payment_received');
+    }
+
+    setReturns(prev => [newReturn, ...prev]);
+    return newReturn;
   };
 
   const tenantTransfers = stockTransfers.filter(tr => tr.tenantId === currentTenantId);
@@ -309,6 +454,8 @@ export const TenantProvider = ({ children }) => {
     setProducts(INITIAL_PRODUCTS);
     setInvoices(INITIAL_INVOICES);
     setStockTransfers(INITIAL_STOCK_TRANSFERS);
+    setCustomers([]);
+    setReturns([]);
   };
 
   return (
@@ -327,6 +474,14 @@ export const TenantProvider = ({ children }) => {
       allProducts: products,
       invoices: tenantInvoices,
       stockTransfers: tenantTransfers,
+      customers: tenantCustomers,
+      allCustomers: customers,
+      addOrUpdateCustomer,
+      updateCustomerBalance,
+      deleteCustomer,
+      returns: tenantReturns,
+      allReturns: returns,
+      createReturn,
       switchTenant,
       switchBranch,
       switchRole,

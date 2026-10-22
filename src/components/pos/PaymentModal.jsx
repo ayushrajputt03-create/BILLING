@@ -14,7 +14,7 @@ import {
 import { useTenant } from '../../context/TenantContext';
 
 export const PaymentModal = ({ isOpen, onClose, cartItems, grandTotal, onCompleteCheckout }) => {
-  const { currentTenant } = useTenant();
+  const { currentTenant, customers } = useTenant();
 
   const [paymentMode, setPaymentMode] = useState('Cash');
   const [billDiscount, setBillDiscount] = useState(0);
@@ -37,7 +37,13 @@ export const PaymentModal = ({ isOpen, onClose, cartItems, grandTotal, onComplet
       }
     }
 
+    if (paymentMode === 'Udhaar' && !customerPhone.trim() && !customerName.trim()) {
+      alert('Please enter Customer Name and Mobile Number to record this sale under Khata / Store Credit.');
+      return;
+    }
+
     onCompleteCheckout({
+      mode: paymentMode,
       paymentMode,
       billDiscount: Number(billDiscount),
       customerInfo: { name: customerName || 'Walk-in Customer', phone: customerPhone },
@@ -155,8 +161,45 @@ export const PaymentModal = ({ isOpen, onClose, cartItems, grandTotal, onComplet
             </div>
           )}
 
+          {paymentMode === 'Udhaar' && (
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 space-y-1">
+              <p className="font-bold flex items-center gap-1.5">
+                <UserCheck className="w-4 h-4 text-amber-400" />
+                <span>Store Credit / Khata Transaction</span>
+              </p>
+              <p className="text-[11px] text-slate-300">
+                This bill amount of ₹{netGrandTotal.toFixed(2)} will be debited to customer's outstanding Khata balance.
+              </p>
+            </div>
+          )}
+
           <div className="space-y-3 pt-1 border-t border-slate-800">
-            <p className="text-xs font-bold text-slate-300 uppercase tracking-wider">Customer Details (Optional)</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                Customer Details {paymentMode === 'Udhaar' ? '(Required for Khata)' : '(Optional)'}
+              </p>
+            </div>
+
+            {/* Quick Pick from existing customers if available */}
+            {customers && customers.length > 0 && (
+              <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
+                <span className="text-[10px] text-slate-500 shrink-0">Quick Select:</span>
+                {customers.slice(0, 5).map(c => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => {
+                      setCustomerName(c.name);
+                      setCustomerPhone(c.phone);
+                    }}
+                    className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold whitespace-nowrap border border-slate-700/60"
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="relative">
                 <User className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />

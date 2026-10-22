@@ -5,7 +5,8 @@ import {
   Package, 
   Building, 
   BarChart3, 
-  ShieldCheck 
+  ShieldCheck,
+  Users
 } from 'lucide-react';
 
 export const MobileBottomNav = ({ activeTab, setActiveTab }) => {
@@ -14,6 +15,7 @@ export const MobileBottomNav = ({ activeTab, setActiveTab }) => {
   const navItems = [
     { id: 'pos', label: 'Billing', icon: Calculator, roles: ['Owner', 'Manager', 'Cashier', 'SuperAdmin'] },
     { id: 'inventory', label: 'Catalog', icon: Package, roles: ['Owner', 'Manager', 'SuperAdmin'] },
+    { id: 'customers', label: 'Khata', icon: Users, roles: ['Owner', 'Manager', 'SuperAdmin'] },
     { id: 'multistore', label: 'Stores', icon: Building, roles: ['Owner', 'Manager', 'SuperAdmin'] },
     { id: 'reports', label: 'Reports', icon: BarChart3, roles: ['Owner', 'Manager', 'SuperAdmin'] },
     { id: 'admin', label: 'SaaS Admin', icon: ShieldCheck, roles: ['SuperAdmin'] }

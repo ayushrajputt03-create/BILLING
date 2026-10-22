@@ -12,12 +12,18 @@ import {
   ArrowRight,
   Sparkles,
   ChevronUp,
-  X
+  X,
+  Printer,
+  CheckCircle2,
+  RotateCcw,
+  Eye,
+  Check
 } from 'lucide-react';
 import { CameraScannerModal } from './CameraScannerModal';
 import { PaymentModal } from './PaymentModal';
 import { ThermalPrintModal } from './ThermalPrintModal';
 import { QuickAddProductModal } from './QuickAddProductModal';
+import { ReturnModal } from './ReturnModal';
 
 export const POSBillingTerminal = () => {
   const { products, activeBranch, createInvoice } = useTenant();
@@ -33,6 +39,8 @@ export const POSBillingTerminal = () => {
   // Modals
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [isReturnOpen, setIsReturnOpen] = useState(false);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [completedInvoice, setCompletedInvoice] = useState(null);
   const [isPrintOpen, setIsPrintOpen] = useState(false);
 
@@ -96,6 +104,8 @@ export const POSBillingTerminal = () => {
         setIsPaymentOpen(false);
         setIsQuickAddOpen(false);
         setIsMobileCartOpen(false);
+        setIsReturnOpen(false);
+        setIsSuccessModalOpen(false);
       }
     };
     window.addEventListener('keydown', handleShortcuts);
@@ -141,6 +151,16 @@ export const POSBillingTerminal = () => {
     }));
   };
 
+  const updateItemDiscount = (id, val) => {
+    const num = Math.max(0, parseFloat(val) || 0);
+    setCart(prev => prev.map(item => {
+      if (item.id === id) {
+        return { ...item, discount: num };
+      }
+      return item;
+    }));
+  };
+
   const removeItem = (id) => {
     setCart(prev => prev.filter(item => item.id !== id));
   };
@@ -177,6 +197,7 @@ export const POSBillingTerminal = () => {
     setIsPaymentOpen(false);
     setIsMobileCartOpen(false);
     setCompletedInvoice(newInv);
+    setIsSuccessModalOpen(true);
     if (paymentData.shouldPrint) {
       setIsPrintOpen(true);
     }
@@ -206,6 +227,15 @@ export const POSBillingTerminal = () => {
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              onClick={() => setIsReturnOpen(true)}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-xs font-bold transition-all shadow-sm"
+              title="Process a Return or Refund"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Sales Return</span>
+            </button>
+
             <button
               onClick={() => setIsCameraOpen(true)}
               className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-extrabold transition-all shadow-md shadow-emerald-500/10"
@@ -315,9 +345,29 @@ export const POSBillingTerminal = () => {
                       <span>₹{item.sellingPrice} / {item.unit}</span>
                       <span>• GST {item.taxRate}%</span>
                     </div>
+
+                    {/* Item Level Discount Input */}
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <span className="text-[10px] text-slate-400 font-medium">Disc: ₹</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={item.discount || ''}
+                        onChange={(e) => updateItemDiscount(item.id, e.target.value)}
+                        placeholder="0 off"
+                        title="Item-level discount in ₹"
+                        className="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-[10px] text-white font-mono text-right focus:outline-none focus:border-emerald-500"
+                      />
+                      {item.discount > 0 && (
+                        <span className="text-[9px] text-rose-400 font-mono">
+                          (-₹{Number(item.discount).toFixed(2)})
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-700">
+                  <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-700 shrink-0">
                     <button
                       onClick={() => updateQty(item.id, -1)}
                       className="p-1 text-slate-400 hover:text-slate-200"
@@ -333,13 +383,18 @@ export const POSBillingTerminal = () => {
                     </button>
                   </div>
 
-                  <div className="text-right min-w-[70px]">
+                  <div className="text-right min-w-[75px] shrink-0">
+                    {item.discount > 0 && (
+                      <span className="text-[10px] text-slate-500 line-through block font-mono">
+                        ₹{(item.sellingPrice * item.qty).toFixed(2)}
+                      </span>
+                    )}
                     <p className="font-bold font-mono text-xs text-emerald-400">
                       ₹{(item.sellingPrice * item.qty - (item.discount || 0)).toFixed(2)}
                     </p>
                     <button
                       onClick={() => removeItem(item.id)}
-                      className="text-[10px] text-slate-500 hover:text-rose-400 transition-colors"
+                      className="text-[10px] text-slate-500 hover:text-rose-400 transition-colors mt-0.5"
                     >
                       Remove
                     </button>
@@ -370,14 +425,26 @@ export const POSBillingTerminal = () => {
             </div>
           </div>
 
-          <button
-            disabled={cart.length === 0}
-            onClick={() => setIsPaymentOpen(true)}
-            className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-bold rounded-xl text-base shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 transition-all"
-          >
-            <CreditCard className="w-5 h-5" />
-            <span>COLLECT PAYMENT (F8)</span>
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setIsReturnOpen(true)}
+              className="px-3.5 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shrink-0"
+              title="Process a Return or Refund"
+            >
+              <RotateCcw className="w-4 h-4 text-rose-400" />
+              <span className="hidden xl:inline">Return</span>
+            </button>
+
+            <button
+              disabled={cart.length === 0}
+              onClick={() => setIsPaymentOpen(true)}
+              className="flex-1 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-bold rounded-xl text-sm sm:text-base shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 transition-all"
+            >
+              <CreditCard className="w-5 h-5" />
+              <span>COLLECT PAYMENT (F8)</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -425,25 +492,51 @@ export const POSBillingTerminal = () => {
 
             <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
               {cart.map(item => (
-                <div key={item.id} className="p-3 rounded-xl bg-slate-800/90 border border-slate-700 flex items-center justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-xs text-white truncate">{item.name}</p>
-                    <p className="text-[10px] text-slate-400 font-mono">₹{item.sellingPrice} • GST {item.taxRate}%</p>
+                <div key={item.id} className="p-3 rounded-xl bg-slate-800/90 border border-slate-700 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-xs text-white truncate">{item.name}</p>
+                      <p className="text-[10px] text-slate-400 font-mono">₹{item.sellingPrice} • GST {item.taxRate}%</p>
+                    </div>
+
+                    <div className="flex items-center gap-2 bg-slate-950 p-1 rounded-xl border border-slate-700 shrink-0">
+                      <button onClick={() => updateQty(item.id, -1)} className="p-1 text-slate-300">
+                        <Minus className="w-4 h-4" />
+                      </button>
+                      <span className="font-mono font-bold text-xs px-2 text-white">{item.qty}</span>
+                      <button onClick={() => updateQty(item.id, 1)} className="p-1 text-slate-300">
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="text-right min-w-[65px] shrink-0">
+                      {item.discount > 0 && (
+                        <span className="text-[10px] text-slate-500 line-through block font-mono">
+                          ₹{(item.sellingPrice * item.qty).toFixed(2)}
+                        </span>
+                      )}
+                      <p className="font-bold font-mono text-xs text-emerald-400">
+                        ₹{(item.sellingPrice * item.qty - (item.discount || 0)).toFixed(2)}
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2 bg-slate-950 p-1 rounded-xl border border-slate-700">
-                    <button onClick={() => updateQty(item.id, -1)} className="p-1 text-slate-300">
-                      <Minus className="w-4 h-4" />
-                    </button>
-                    <span className="font-mono font-bold text-xs px-2 text-white">{item.qty}</span>
-                    <button onClick={() => updateQty(item.id, 1)} className="p-1 text-slate-300">
-                      <Plus className="w-4 h-4" />
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-700/60 text-[10px]">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-slate-400">Discount: ₹</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={item.discount || ''}
+                        onChange={(e) => updateItemDiscount(item.id, e.target.value)}
+                        placeholder="0 off"
+                        className="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-white font-mono text-right"
+                      />
+                    </div>
+                    <button onClick={() => removeItem(item.id)} className="text-rose-400 hover:text-rose-300">
+                      Remove
                     </button>
                   </div>
-
-                  <p className="font-bold font-mono text-xs text-emerald-400 min-w-[60px] text-right">
-                    ₹{(item.sellingPrice * item.qty).toFixed(2)}
-                  </p>
                 </div>
               ))}
             </div>
@@ -454,16 +547,30 @@ export const POSBillingTerminal = () => {
                 <span className="font-mono text-xl text-emerald-400">₹{grandTotal.toFixed(2)}</span>
               </div>
 
-              <button
-                onClick={() => {
-                  setIsMobileCartOpen(false);
-                  setIsPaymentOpen(true);
-                }}
-                className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold rounded-2xl text-base shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2"
-              >
-                <CreditCard className="w-5 h-5" />
-                <span>PROCEED TO PAYMENT</span>
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileCartOpen(false);
+                    setIsReturnOpen(true);
+                  }}
+                  className="px-3 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-2xl text-xs font-bold flex items-center justify-center gap-1 shrink-0"
+                >
+                  <RotateCcw className="w-4 h-4 text-rose-400" />
+                  <span>Return</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsMobileCartOpen(false);
+                    setIsPaymentOpen(true);
+                  }}
+                  className="flex-1 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold rounded-2xl text-base shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2"
+                >
+                  <CreditCard className="w-5 h-5" />
+                  <span>PROCEED TO PAYMENT</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -484,6 +591,11 @@ export const POSBillingTerminal = () => {
         onProductCreatedAndAdded={handleProductCreatedAndAdded}
       />
 
+      <ReturnModal
+        isOpen={isReturnOpen}
+        onClose={() => setIsReturnOpen(false)}
+      />
+
       <PaymentModal
         isOpen={isPaymentOpen}
         onClose={() => setIsPaymentOpen(false)}
@@ -494,6 +606,80 @@ export const POSBillingTerminal = () => {
         grandTotal={grandTotal}
         onCompleteCheckout={handleCheckoutComplete}
       />
+
+      {/* Prominent Sale Completed Success Modal with Show & Print Options */}
+      {isSuccessModalOpen && completedInvoice && (
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl p-5 text-center space-y-4">
+            <div className="w-14 h-14 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto">
+              <CheckCircle2 className="w-8 h-8" />
+            </div>
+
+            <div>
+              <h3 className="text-lg sm:text-xl font-bold text-white font-display">Sale Completed Successfully!</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Tax invoice generated &amp; inventory deducted</p>
+            </div>
+
+            {/* Bill Info Card */}
+            <div className="p-3.5 rounded-xl bg-slate-800/70 border border-slate-700/80 space-y-2 text-xs text-left">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Invoice Number:</span>
+                <span className="font-mono font-bold text-emerald-400">{completedInvoice.invoiceNumber}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Customer:</span>
+                <span className="font-semibold text-slate-200">
+                  {completedInvoice.customerName || 'Walk-in'} {completedInvoice.customerPhone && `(${completedInvoice.customerPhone})`}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Payment Mode:</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-950 text-slate-300 border border-slate-700">
+                  {completedInvoice.paymentMode}
+                </span>
+              </div>
+              <div className="flex justify-between pt-2 border-t border-slate-700 text-sm font-bold">
+                <span className="text-slate-200">Grand Total:</span>
+                <span className="font-mono text-emerald-400 text-base">₹{completedInvoice.grandTotal.toFixed(2)}</span>
+              </div>
+            </div>
+
+            {/* Clear Primary Action Buttons: Show / View Invoice, Print Receipt, Start Next Bill */}
+            <div className="space-y-2 pt-1">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsPrintOpen(true)}
+                  className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                >
+                  <Eye className="w-4 h-4 text-emerald-400" />
+                  <span>Show / View Invoice</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsPrintOpen(true)}
+                  className="py-2.5 px-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-emerald-500/20"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Print Receipt</span>
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSuccessModalOpen(false);
+                  if (searchInputRef.current) searchInputRef.current.focus();
+                }}
+                className="w-full py-2.5 bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-semibold transition-colors"
+              >
+                Start Next Bill (New Sale)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ThermalPrintModal
         isOpen={isPrintOpen}
